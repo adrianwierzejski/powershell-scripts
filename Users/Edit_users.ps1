@@ -17,40 +17,36 @@ $permissionsCSV = Import-Csv -path 'C:\Temp\Scripts\groups.csv' -Delimiter ',' -
 
 foreach($user in $usersCSV){
     Write-Message -message "Aktualny użytkownik $user" -filePath $path
-    if($user.UserPrincipleName -eq "0"){
-        Write-Message -message "Użytkownik  $($user.Store) $($user.UserPrincipleName) błędne dane" -filePath $path
-    }else{
-        $userAD = Get-ADUser -Filter "UserPrincipalName -eq `"$($user.UserPrincipleName)`"" -Properties * -Server "XYpl0050001.contoso.local"
-        if($userAD -ne $null ){
+										
+																													 
+		  
+	$userAD = Get-ADUser -Filter "sAMAccountName -eq `"$($user.Samaccountname)`"" -Properties * -Server "XYpl0050001.contoso.local"
+	if($userAD -ne $null ){
 
-            if($($userAD.SamAccountName.Substring(2,6)) -eq $($user.Store)){
-														   
+		if($($userAD.SamAccountName.Substring(2,6)) -eq $($user.Store)){
 
-                $serverNumber = $userAD.SamAccountName.Substring(4,4)
-                $serverHostName="XYpl$($serverNumber)001.contoso.local"
-																		
-				foreach($permission in $permissionsCSV){
-					if($user.title_no_PL_chars -eq $($permission.title_no_PL_chars) ){
-						$groupsToAdd = $permission.psobject.Properties | Where-Object { $_.name -Like "GG*" -or $_.name -like "GL*" -and $_.value -eq "TRUE"} | select name
-						foreach($group in $groupsToAdd){
-							if($($group.Name) -like "*XXXX*"){
-								$group.Name = $group.Name.Replace("XXXX",$serverNumber)
-							}
-							Write-Message -message "$($userAD.SamAccountName) $($userAD.UserPrincipalName) Dodane grupa:$($group.Name)" -filePath $path
-							Add-ADGroupMember -Identity $($group.Name) -Members $($userAD.SamAccountName) -Server $serverHostName -Verbose
+			$serverNumber = $userAD.SamAccountName.Substring(4,4)
+			$serverHostName="XYpl$($serverNumber)001.contoso.local"
+
+			foreach($permission in $permissionsCSV){
+				if($user.title_no_PL_chars -eq $($permission.title_no_PL_chars) ){
+					$groupsToAdd = $permission.psobject.Properties | Where-Object { $_.name -Like "GG*" -or $_.name -like "GL*" -and $_.value -eq "TRUE"} | select name
+					foreach($group in $groupsToAdd){
+						if($($group.Name) -like "*XXXX*"){
+							$group.Name = $group.Name.Replace("XXXX",$serverNumber)
 						}
-	
+						Write-Message -message "$($userAD.SamAccountName) $($userAD.UserPrincipalName) $($user.DisplayName_no_PL_chars) Dodane grupa:$($group.Name)" -filePath $path
+						Add-ADGroupMember -Identity $($group.Name) -Members $($userAD.SamAccountName) -Server $serverHostName -Verbose
 					}
-				}
 
-            }else{
-                Write-Message -message "Użytkownika znajduje się w innym markecie Store z CSV: $($user.Store) Store z AD: $($userAD.SamAccountName.Substring(2,6)) $($user.UserPrincipleName) nie znaleziono w AD" -filePath $path
-            }
-        
-        }else{
-            Write-Message -message "Użytkownika $($user.Store) $($user.UserPrincipleName) nie znaleziono w AD" -filePath $path
-        }
-    
-    }
-    
+				}
+			}
+
+		}else{
+			Write-Message -message "Użytkownika znajduje się w innym markecie Store z CSV: $($user.Store) Store z AD: $($userAD.SamAccountName.Substring(2,6)) $($user.DisplayName_no_PL_chars) nie znaleziono w AD" -filePath $path
+		}
+	
+	}else{
+		Write-Message -message "Użytkownika $($user.Store) $($user.Samaccountname) $($user.DisplayName_no_PL_chars) nie znaleziono w AD" -filePath $path
+	}
 }
